@@ -2,6 +2,8 @@ import { NextRequest, NextResponse } from 'next/server'
 import { withPermission, AuthenticatedRequest } from '@/lib/auth/middleware'
 import { PERMISSIONS } from '@/lib/rbac/constants'
 import { prisma } from '@/lib/db'
+import { PageInputSchema } from '@/lib/blocks'
+import { validate, formatValidationErrors } from '@/lib/validation'
 
 interface RouteParams {
   params: Promise<{
@@ -70,7 +72,19 @@ export async function PATCH(
       try {
         const { id } = await params
         const body = await req.json()
-        const { title, slug, body: pageBody, status } = body
+
+        // Partial validation - only validate provided fields
+        const partialSchema = PageInputSchema.partial()
+        const validationResult = validate(partialSchema, body)
+
+        if (!validationResult.success) {
+          return NextResponse.json(
+            formatValidationErrors(validationResult.errors),
+            { status: 400 }
+          )
+        }
+
+        const { title, slug, body: pageBody, status } = validationResult.data
 
         const page = await prisma.page.update({
           where: { id },

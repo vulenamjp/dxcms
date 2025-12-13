@@ -2,6 +2,8 @@ import { NextRequest, NextResponse } from 'next/server'
 import { withPermission, AuthenticatedRequest } from '@/lib/auth/middleware'
 import { PERMISSIONS } from '@/lib/rbac/constants'
 import { prisma } from '@/lib/db'
+import { PageInputSchema } from '@/lib/blocks'
+import { validate, formatValidationErrors } from '@/lib/validation'
 
 // GET /api/admin/pages - List all pages (requires manage_content permission)
 export const GET = withPermission(
@@ -46,15 +48,18 @@ export const POST = withPermission(
   async (req: AuthenticatedRequest) => {
     try {
       const body = await req.json()
-      const { slug, title, body: pageBody, status } = body
 
-      // Validate input
-      if (!slug || !title || !pageBody) {
+      // Validate input with Zod
+      const validationResult = validate(PageInputSchema, body)
+      
+      if (!validationResult.success) {
         return NextResponse.json(
-          { error: 'Slug, title, and body are required' },
+          formatValidationErrors(validationResult.errors),
           { status: 400 }
         )
       }
+
+      const { slug, title, body: pageBody, status } = validationResult.data
 
       // Check if slug already exists
       const existingPage = await prisma.page.findUnique({
