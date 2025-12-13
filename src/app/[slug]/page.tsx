@@ -38,7 +38,7 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
       title: seo.title || page.title,
       description: seo.description,
       images: seo.ogImage ? [{ url: seo.ogImage }] : undefined,
-      type: seo.ogType === 'blog' ? 'article' : (seo.ogType as 'website' | 'article'),
+      type: seo.ogType === 'blog' ? 'article' : seo.ogType === 'article' ? 'article' : 'website',
     },
     twitter: {
       card: 'summary_large_image',
