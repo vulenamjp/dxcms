@@ -1,4 +1,5 @@
 import type { RichTextBlock } from '@/lib/blocks'
+import DOMPurify from 'isomorphic-dompurify'
 
 interface RichTextRendererProps {
   block: RichTextBlock
@@ -6,13 +7,14 @@ interface RichTextRendererProps {
 
 export function RichTextRenderer({ block }: RichTextRendererProps) {
   const { data } = block
+  const sanitizedContent = DOMPurify.sanitize(data.content)
 
   return (
     <section className="py-16 px-4 sm:px-6 lg:px-8">
       <div className="max-w-4xl mx-auto">
         <div
           className="prose prose-lg max-w-none prose-headings:font-bold prose-a:text-blue-600 prose-img:rounded-lg"
-          dangerouslySetInnerHTML={{ __html: data.content }}
+          dangerouslySetInnerHTML={{ __html: sanitizedContent }}
         />
       </div>
     </section>
