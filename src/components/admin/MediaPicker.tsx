@@ -1,25 +1,25 @@
 'use client'
 
 import { useState } from 'react'
+import { MediaBrowser } from './MediaBrowser'
 
 interface MediaPickerProps {
   value?: string
   onChange: (url: string) => void
   label?: string
   showPreview?: boolean
-  accept?: string
 }
 
 export function MediaPicker({
   value = '',
   onChange,
-  label = 'Image URL',
+  label = 'Image',
   showPreview = true,
-  accept = 'image/*',
 }: MediaPickerProps) {
-  const [inputType, setInputType] = useState<'url' | 'upload'>('url')
+  const [inputType, setInputType] = useState<'url' | 'upload' | 'browse'>('browse')
   const [previewUrl, setPreviewUrl] = useState(value)
   const [isUploading, setIsUploading] = useState(false)
+  const [showBrowser, setShowBrowser] = useState(false)
 
   const handleUrlChange = (url: string) => {
     setPreviewUrl(url)
@@ -33,20 +33,32 @@ export function MediaPicker({
     setIsUploading(true)
 
     try {
-      // For now, use a data URL for preview
-      // In EPIC 7, this will upload to actual storage
-      const reader = new FileReader()
-      reader.onloadend = () => {
-        const dataUrl = reader.result as string
-        setPreviewUrl(dataUrl)
-        onChange(dataUrl)
-        setIsUploading(false)
+      const formData = new FormData()
+      formData.append('file', file)
+
+      const response = await fetch('/api/admin/media', {
+        method: 'POST',
+        body: formData,
+      })
+
+      if (!response.ok) {
+        const errorData = await response.json()
+        throw new Error(errorData.error || 'Upload failed')
       }
-      reader.readAsDataURL(file)
+
+      const media = await response.json()
+      handleUrlChange(media.url)
     } catch (error) {
       console.error('Upload failed:', error)
+      alert(error instanceof Error ? error.message : 'Upload failed')
+    } finally {
       setIsUploading(false)
     }
+  }
+
+  const handleBrowseSelect = (url: string) => {
+    handleUrlChange(url)
+    setShowBrowser(false)
   }
 
   const clearImage = () => {
@@ -61,6 +73,17 @@ export function MediaPicker({
           {label}
         </label>
         <div className="flex gap-2">
+          <button
+            type="button"
+            onClick={() => setShowBrowser(true)}
+            className={`px-3 py-1 text-xs rounded ${
+              inputType === 'browse'
+                ? 'bg-blue-600 text-white'
+                : 'bg-gray-200 text-gray-700'
+            }`}
+          >
+            Browse Library
+          </button>
           <button
             type="button"
             onClick={() => setInputType('url')}
@@ -81,7 +104,7 @@ export function MediaPicker({
                 : 'bg-gray-200 text-gray-700'
             }`}
           >
-            Upload
+            Quick Upload
           </button>
         </div>
       </div>
@@ -94,7 +117,7 @@ export function MediaPicker({
           placeholder="https://example.com/image.jpg"
           className="w-full px-3 py-2 border border-gray-300 rounded-md text-gray-900 bg-white focus:outline-none focus:ring-2 focus:ring-blue-500"
         />
-      ) : (
+      ) : inputType === 'upload' ? (
         <div>
           <label className="flex items-center justify-center w-full px-4 py-3 border-2 border-dashed border-gray-300 rounded-md cursor-pointer hover:border-blue-500 transition-colors bg-white">
             <div className="text-center">
@@ -124,7 +147,7 @@ export function MediaPicker({
             </div>
             <input
               type="file"
-              accept={accept}
+              accept="image/*"
               onChange={handleFileUpload}
               className="hidden"
               disabled={isUploading}
@@ -133,6 +156,19 @@ export function MediaPicker({
           {value && inputType === 'upload' && (
             <p className="mt-2 text-xs text-gray-500 truncate">{value}</p>
           )}
+        </div>
+      ) : (
+        <div className="text-center py-8 bg-gray-50 border-2 border-dashed border-gray-300 rounded-md">
+          <p className="text-sm text-gray-600 mb-3">
+            Click "Browse Library" to select an image
+          </p>
+          <button
+            type="button"
+            onClick={() => setShowBrowser(true)}
+            className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700"
+          >
+            Open Media Library
+          </button>
         </div>
       )}
 
@@ -157,6 +193,14 @@ export function MediaPicker({
             </svg>
           </button>
         </div>
+      )}
+
+      {/* Media Browser Modal */}
+      {showBrowser && (
+        <MediaBrowser
+          onSelect={handleBrowseSelect}
+          onClose={() => setShowBrowser(false)}
+        />
       )}
     </div>
   )
