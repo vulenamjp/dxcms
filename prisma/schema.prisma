@@ -1,0 +1,248 @@
+// ============================================
+// CONFIGURATION
+// ============================================
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+// ============================================
+// ENUMS (Type Safety for Next.js 16)
+// ============================================
+
+enum UserRoleType {
+  ADMIN
+  EDITOR
+  VIEWER
+}
+
+enum PageStatus {
+  DRAFT
+  PUBLISHED
+  ARCHIVED
+}
+
+enum RevisionType {
+  PAGE
+  SERVICE
+  PROJECT
+  NEWS
+}
+
+// ============================================
+// USERS & AUTHENTICATION
+// ============================================
+
+model User {
+  id           String    @id @default(cuid())
+  email        String    @unique
+  passwordHash String    @map("password_hash")
+  name         String?
+  createdAt    DateTime  @default(now()) @map("created_at")
+  updatedAt    DateTime  @updatedAt @map("updated_at")
+
+  // Relations
+  userRoles       UserRole[]
+  
+  // Content Relations (Creator/Updater)
+  createdPages    Page[]    @relation("PageCreator")
+  updatedPages    Page[]    @relation("PageUpdater")
+  
+  createdServices Service[] @relation("ServiceCreator")
+  updatedServices Service[] @relation("ServiceUpdater")
+  
+  createdProjects Project[] @relation("ProjectCreator")
+  updatedProjects Project[] @relation("ProjectUpdater")
+  
+  createdNews     News[]    @relation("NewsCreator")
+  updatedNews     News[]    @relation("NewsUpdater")
+  
+  revisions       Revision[]
+
+  @@map("users")
+}
+
+// ============================================
+// RBAC (Role-Based Access Control)
+// ============================================
+
+model Role {
+  id              String           @id @default(cuid())
+  name            String           @unique
+  description     String?
+  createdAt       DateTime         @default(now()) @map("created_at")
+  updatedAt       DateTime         @updatedAt @map("updated_at")
+
+  // Relations
+  userRoles       UserRole[]
+  rolePermissions RolePermission[]
+
+  @@map("roles")
+}
+
+model Permission {
+  id              String           @id @default(cuid())
+  name            String           @unique
+  description     String?
+  createdAt       DateTime         @default(now()) @map("created_at")
+  updatedAt       DateTime         @updatedAt @map("updated_at")
+
+  // Relations
+  rolePermissions RolePermission[]
+
+  @@map("permissions")
+}
+
+model UserRole {
+  id        String   @id @default(cuid())
+  userId    String   @map("user_id")
+  roleId    String   @map("role_id")
+  createdAt DateTime @default(now()) @map("created_at")
+
+  // Relations
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  role Role @relation(fields: [roleId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, roleId]) // Đảm bảo 1 user không có 2 role trùng nhau
+  @@map("user_roles")
+}
+
+model RolePermission {
+  id           String   @id @default(cuid())
+  roleId       String   @map("role_id")
+  permissionId String   @map("permission_id")
+  createdAt    DateTime @default(now()) @map("created_at")
+
+  // Relations
+  role       Role       @relation(fields: [roleId], references: [id], onDelete: Cascade)
+  permission Permission @relation(fields: [permissionId], references: [id], onDelete: Cascade)
+
+  @@unique([roleId, permissionId])
+  @@map("role_permissions")
+}
+
+// ============================================
+// CONTENT MANAGEMENT
+// ============================================
+
+model Page {
+  id          String     @id @default(cuid())
+  slug        String     @unique
+  title       String
+  status      PageStatus @default(DRAFT) // Sử dụng Enum
+  body        Json       // JSONB tốt cho PostgreSQL
+  publishAt   DateTime?  @map("publish_at")
+  createdAt   DateTime   @default(now()) @map("created_at")
+  updatedAt   DateTime   @updatedAt @map("updated_at")
+  createdById String     @map("created_by_id")
+  updatedById String     @map("updated_by_id")
+
+  // Relations
+  createdBy User @relation("PageCreator", fields: [createdById], references: [id])
+  updatedBy User @relation("PageUpdater", fields: [updatedById], references: [id])
+
+  @@index([slug])
+  @@index([status])
+  @@map("pages")
+}
+
+model Service {
+  id          String   @id @default(cuid())
+  title       String
+  description String?  @db.Text
+  icon        String?
+  order       Int      @default(0)
+  isActive    Boolean  @default(true) @map("is_active")
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @updatedAt @map("updated_at")
+  createdById String   @map("created_by_id")
+  updatedById String   @map("updated_by_id")
+
+  // Relations
+  createdBy User @relation("ServiceCreator", fields: [createdById], references: [id])
+  updatedBy User @relation("ServiceUpdater", fields: [updatedById], references: [id])
+
+  @@map("services")
+}
+
+model Project {
+  id          String   @id @default(cuid())
+  title       String
+  description String?  @db.Text
+  imageUrl    String?  @map("image_url")
+  url         String?
+  category    String?
+  order       Int      @default(0)
+  isActive    Boolean  @default(true) @map("is_active")
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @updatedAt @map("updated_at")
+  createdById String   @map("created_by_id")
+  updatedById String   @map("updated_by_id")
+
+  // Relations
+  createdBy User @relation("ProjectCreator", fields: [createdById], references: [id])
+  updatedBy User @relation("ProjectUpdater", fields: [updatedById], references: [id])
+
+  @@map("projects")
+}
+
+model News {
+  id          String   @id @default(cuid())
+  slug        String   @unique
+  title       String
+  excerpt     String?  @db.Text
+  content     String   @db.Text
+  imageUrl    String?  @map("image_url")
+  category    String?
+  publishedAt DateTime @default(now()) @map("published_at")
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @updatedAt @map("updated_at")
+  createdById String   @map("created_by_id")
+  updatedById String   @map("updated_by_id")
+
+  // Relations
+  createdBy User @relation("NewsCreator", fields: [createdById], references: [id])
+  updatedBy User @relation("NewsUpdater", fields: [updatedById], references: [id])
+
+  @@index([slug])
+  @@index([publishedAt])
+  @@map("news")
+}
+
+model Media {
+  id           String   @id @default(cuid())
+  filename     String
+  originalName String   @map("original_name")
+  mimeType     String   @map("mime_type")
+  size         Int
+  url          String
+  alt          String?
+  createdAt    DateTime @default(now()) @map("created_at")
+  updatedAt    DateTime @updatedAt @map("updated_at")
+
+  @@map("media")
+}
+
+// ============================================
+// REVISION HISTORY
+// ============================================
+
+model Revision {
+  id          String       @id @default(cuid())
+  contentType RevisionType @map("content_type") // Sử dụng Enum
+  contentId   String       @map("content_id")
+  payload     Json         // Lưu snapshot dữ liệu
+  createdAt   DateTime     @default(now()) @map("created_at")
+  createdById String       @map("created_by_id")
+
+  // Relations
+  createdBy User @relation(fields: [createdById], references: [id])
+
+  @@index([contentType, contentId])
+  @@index([createdAt])
+  @@map("revisions")
+}
