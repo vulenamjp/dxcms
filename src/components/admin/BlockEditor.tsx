@@ -1,6 +1,10 @@
 'use client'
 
+import { useState } from 'react'
 import type { Block } from '@/lib/blocks'
+import { MediaPicker } from './MediaPicker'
+import { RichTextEditor as TiptapEditor } from './RichTextEditor'
+import { GalleryImageManager } from './GalleryImageManager'
 
 interface BlockEditorProps {
   block: Block
@@ -135,14 +139,11 @@ function HeroEditor({
       </div>
 
       <div>
-        <label className="block text-sm font-medium text-gray-700 mb-1">
-          Background Image URL
-        </label>
-        <input
-          type="url"
+        <MediaPicker
+          label="Background Image"
           value={block.data.backgroundImage || ''}
-          onChange={(e) => updateData('backgroundImage', e.target.value)}
-          className="w-full px-3 py-2 border border-gray-300 rounded-md text-gray-900 bg-white"
+          onChange={(url) => updateData('backgroundImage', url)}
+          showPreview={true}
         />
       </div>
     </div>
@@ -237,6 +238,22 @@ function ServicesEditor({
           <span className="text-sm text-gray-700">Show Descriptions</span>
         </label>
       </div>
+
+      <div>
+        <label className="block text-sm font-medium text-gray-700 mb-1">
+          Category Filter (optional)
+        </label>
+        <input
+          type="text"
+          value={block.data.category || ''}
+          onChange={(e) => updateData('category', e.target.value)}
+          placeholder="e.g., consulting, development"
+          className="w-full px-3 py-2 border border-gray-300 rounded-md text-gray-900 bg-white"
+        />
+        <p className="mt-1 text-xs text-gray-500">
+          Leave empty to show all services
+        </p>
+      </div>
     </div>
   )
 }
@@ -306,6 +323,22 @@ function ProjectsEditor({
             className="w-full px-3 py-2 border border-gray-300 rounded-md text-gray-900 bg-white"
           />
         </div>
+      </div>
+
+      <div>
+        <label className="block text-sm font-medium text-gray-700 mb-1">
+          Category Filter (optional)
+        </label>
+        <input
+          type="text"
+          value={block.data.category || ''}
+          onChange={(e) => updateData('category', e.target.value)}
+          placeholder="e.g., web, mobile, enterprise"
+          className="w-full px-3 py-2 border border-gray-300 rounded-md text-gray-900 bg-white"
+        />
+        <p className="mt-1 text-xs text-gray-500">
+          Leave empty to show all projects
+        </p>
       </div>
     </div>
   )
@@ -409,6 +442,22 @@ function NewsEditor({
           <span className="text-sm text-gray-700">Show Date</span>
         </label>
       </div>
+
+      <div>
+        <label className="block text-sm font-medium text-gray-700 mb-1">
+          Category Filter (optional)
+        </label>
+        <input
+          type="text"
+          value={block.data.category || ''}
+          onChange={(e) => updateData('category', e.target.value)}
+          placeholder="e.g., announcements, updates"
+          className="w-full px-3 py-2 border border-gray-300 rounded-md text-gray-900 bg-white"
+        />
+        <p className="mt-1 text-xs text-gray-500">
+          Leave empty to show all news articles
+        </p>
+      </div>
     </div>
   )
 }
@@ -421,33 +470,60 @@ function RichTextEditor({
   block: any
   updateData: (key: string, value: any) => void
 }) {
+  const [useWysiwyg, setUseWysiwyg] = useState(true)
+
   return (
     <div className="space-y-4">
-      <div>
-        <label className="block text-sm font-medium text-gray-700 mb-1">
-          Format
+      <div className="flex items-center justify-between">
+        <label className="block text-sm font-medium text-gray-700">
+          Editor Mode
         </label>
-        <select
-          value={block.data.format || 'html'}
-          onChange={(e) => updateData('format', e.target.value)}
-          className="w-full px-3 py-2 border border-gray-300 rounded-md text-gray-900 bg-white"
-        >
-          <option value="html">HTML</option>
-          <option value="markdown">Markdown</option>
-        </select>
+        <div className="flex gap-2">
+          <button
+            type="button"
+            onClick={() => setUseWysiwyg(true)}
+            className={`px-3 py-1 text-xs rounded ${
+              useWysiwyg
+                ? 'bg-blue-600 text-white'
+                : 'bg-gray-200 text-gray-700'
+            }`}
+          >
+            WYSIWYG
+          </button>
+          <button
+            type="button"
+            onClick={() => setUseWysiwyg(false)}
+            className={`px-3 py-1 text-xs rounded ${
+              !useWysiwyg
+                ? 'bg-blue-600 text-white'
+                : 'bg-gray-200 text-gray-700'
+            }`}
+          >
+            HTML
+          </button>
+        </div>
       </div>
 
-      <div>
-        <label className="block text-sm font-medium text-gray-700 mb-1">
-          Content
-        </label>
-        <textarea
-          value={block.data.content || ''}
-          onChange={(e) => updateData('content', e.target.value)}
-          className="w-full px-3 py-2 border border-gray-300 rounded-md font-mono text-sm text-gray-900 bg-white"
-          rows={10}
+      {useWysiwyg ? (
+        <TiptapEditor
+          content={block.data.content || ''}
+          onChange={(content) => updateData('content', content)}
+          placeholder="Start writing your content..."
         />
-      </div>
+      ) : (
+        <div>
+          <label className="block text-sm font-medium text-gray-700 mb-1">
+            HTML Content
+          </label>
+          <textarea
+            value={block.data.content || ''}
+            onChange={(e) => updateData('content', e.target.value)}
+            className="w-full px-3 py-2 border border-gray-300 rounded-md font-mono text-sm text-gray-900 bg-white"
+            rows={15}
+            placeholder="<h2>Your HTML here</h2>"
+          />
+        </div>
+      )}
     </div>
   )
 }
@@ -528,12 +604,10 @@ function GalleryEditor({
         </label>
       </div>
 
-      <div className="p-4 bg-gray-50 rounded border border-gray-200">
-        <p className="text-sm text-gray-600">
-          Gallery image management will be implemented with Media Library in
-          EPIC 7
-        </p>
-      </div>
+      <GalleryImageManager
+        images={block.data.images || []}
+        onChange={(images) => updateData('images', images)}
+      />
     </div>
   )
 }
