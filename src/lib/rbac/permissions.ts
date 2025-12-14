@@ -1,23 +1,11 @@
+import { create } from 'domain'
 import { prisma } from '../db'
-
-export interface UserWithRoles {
-  id: string
-  email: string
-  name: string | null
-  roles: {
-    id: string
-    name: string
-    permissions: {
-      id: string
-      name: string
-    }[]
-  }[]
-}
+import { Permission, Role, User } from '../types'
 
 /**
  * Get user with roles and permissions
  */
-export async function getUserWithPermissions(userId: string): Promise<UserWithRoles | null> {
+export async function getUserWithPermissions(userId: string): Promise<User | null> {
   const user = await prisma.user.findUnique({
     where: { id: userId },
     select: {
@@ -44,6 +32,8 @@ export async function getUserWithPermissions(userId: string): Promise<UserWithRo
           },
         },
       },
+      createdAt: true,
+      updatedAt: true
     },
   })
 
@@ -53,11 +43,13 @@ export async function getUserWithPermissions(userId: string): Promise<UserWithRo
     id: user.id,
     email: user.email,
     name: user.name,
-    roles: user.userRoles.map((ur) => ({
-      id: ur.role.id,
-      name: ur.role.name,
-      permissions: ur.role.rolePermissions.map((rp) => rp.permission),
+    userRoles: user.userRoles.map((ur: Role) => ({
+      id: ur.id,
+      name: ur.name,
+      rolePermissions: ur.rolePermissions.map((rp: Permission) => rp),
     })),
+    createdAt: user.createdAt.toISOString(),
+    updatedAt: user.updatedAt.toISOString(),
   }
 }
 
@@ -69,8 +61,8 @@ export async function getUserPermissions(userId: string): Promise<string[]> {
   if (!user) return []
 
   const permissions = new Set<string>()
-  user.roles.forEach((role) => {
-    role.permissions.forEach((permission) => {
+  user.userRoles.forEach((role) => {
+    role.rolePermissions.forEach((permission) => {
       permissions.add(permission.name)
     })
   })

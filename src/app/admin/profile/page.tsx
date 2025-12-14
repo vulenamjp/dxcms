@@ -32,7 +32,6 @@ export default function ProfilePage() {
   // Handlers
   const handleGeneralSubmit = (e: React.FormEvent) => {
     e.preventDefault()
-    console.log({ name, phone })
     showToast("Profile updated!")
   }
 
@@ -42,7 +41,7 @@ export default function ProfilePage() {
       showToast("Passwords do not match!")
       return
     }
-    console.log({ currentPassword, newPassword })
+    
     showToast("Password changed!")
     setCurrentPassword("")
     setNewPassword("")

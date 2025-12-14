@@ -2,16 +2,7 @@
 
 import { useState, useEffect } from 'react'
 import Link from 'next/link'
-
-interface User {
-  id: string
-  name: string
-  email: string
-  role: string
-  isActive: boolean
-  createdAt: string
-  updatedAt: string
-}
+import { User } from '@/lib/types'
 
 export default function UsersPage() {
   const [users, setUsers] = useState<User[]>([])
@@ -23,7 +14,9 @@ export default function UsersPage() {
       setLoading(true)
       const response = await fetch('/api/admin/users')
       if (!response.ok) throw new Error('Failed to fetch users')
+      
       const data = await response.json()
+      console.log('Fetching users response:', data)
       setUsers(data.users)
     } catch (err) {
       setError('Failed to load users')
@@ -106,9 +99,7 @@ export default function UsersPage() {
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                   Role
                 </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Status
-                </th>
+                
                 <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
                   Actions
                 </th>
@@ -124,13 +115,11 @@ export default function UsersPage() {
                     {user.email}
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                    {user.role}
+                    {
+                      user.userRoles.map((role) => role.name).join(', ') || '—'
+                    }
                   </td>
-                  <td className="px-6 py-4 whitespace-nowrap">
-                    <span className={`px-2 py-1 text-xs rounded-full ${user.isActive ? 'bg-green-100 text-green-800' : 'bg-gray-100 text-gray-800'}`}>
-                      {user.isActive ? 'Active' : 'Inactive'}
-                    </span>
-                  </td>
+                  
                   <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
                     <Link
                       href={`/admin/users/${user.id}/edit`}

@@ -2,18 +2,7 @@
 
 import { useState, useEffect } from 'react'
 import Image from 'next/image'
-
-interface Media {
-  id: string
-  filename: string
-  originalName: string
-  url: string
-  size: number
-  mimeType: string
-  alt: string | null
-  createdAt: string
-  updatedAt: string
-}
+import { Media } from '@/lib/types'
 
 interface MediaBrowserProps {
   onSelect: (url: string) => void
