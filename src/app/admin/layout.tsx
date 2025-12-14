@@ -1,6 +1,9 @@
 import { redirect } from 'next/navigation'
 import { getCurrentUser } from '@/lib/auth/jwt'
+
 import Link from 'next/link'
+
+import AdminHeaderWrapper from '@/components/admin/AdminHeaderWrapper'
 
 export default async function AdminLayout({
   children,
@@ -12,6 +15,8 @@ export default async function AdminLayout({
   if (!user) {
     redirect('/login')
   }
+
+
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -56,19 +61,11 @@ export default async function AdminLayout({
                 </Link>
               </nav>
             </div>
-            <div className="flex items-center space-x-4">
-              <span className="text-sm text-gray-600">
-                {(user as any).name || (user as any).email}
-              </span>
-              <form action="/api/auth/logout" method="POST">
-                <button
-                  type="submit"
-                  className="text-sm text-gray-600 hover:text-gray-900"
-                >
-                  Logout
-                </button>
-              </form>
-            </div>
+            <AdminHeaderWrapper user={{
+              name: (user as any).name,
+              email: (user as any).email,
+              avatarUrl: (user as any).avatarUrl || undefined,
+            }} />
           </div>
         </div>
       </header>
